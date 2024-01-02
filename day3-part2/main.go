@@ -42,71 +42,90 @@ func main() {
 			if !isStar(arr[i][j]) {
 				continue
 			}
-			ratio := getStarRatio(directions, arr, i, j)
-			if ratio == 0 {
-				continue
-			}
+			ratio := getRatio(arr, directions, i, j)
 			sum = sum + ratio
 		}
 	}
 	fmt.Println(sum)
 }
 
-func getStarRatio(directions []Point, arr [][]string, i int, j int) int {
-	adjacentCounter := 0
-	partOne := 0
-	partTwo := 0
-	for _, point := range directions {
-		xIndex := j + point.X
-		yIndex := i + point.Y
-		if yIndex < 0 || xIndex > len(arr) {
-			continue
-		}
-		if xIndex < 0 || yIndex > len(arr[i]) {
+func getRatio(arr [][]string, directions []Point, i int, j int) int {
+	one := 0
+	two := 0
+	partsCount := 0
+	for _, p := range directions {
+		yIndex := i + p.Y
+		xIndex := j + p.X
+		if yIndex < 0 || yIndex >= len(arr) || xIndex < 0 || xIndex >= len(arr[i]) {
 			continue
 		}
 		val := arr[yIndex][xIndex]
-		if !isNumber(val) {
+        if !isNumber(val) {
+            continue
+        }
+		if instancesAreOverlapping(arr, p, xIndex, yIndex) {
 			continue
 		}
-		left := walkLeft(arr, point, yIndex, xIndex)
-		right := walkRight(arr, point, yIndex, xIndex)
-		res := fmt.Sprint(left + val + right)
-        num, err := strconv.Atoi(res)
-        if(err != nil) {
-            log.Fatal(err)
-        }
-		adjacentCounter++
+		res := ""
+		if p.X == -1 {
+			res = fmt.Sprint(walkLeft(arr, yIndex, xIndex-1) + val)
+		} else if p.X == 1 {
+			res = fmt.Sprint(val + walkRight(arr, yIndex, xIndex+1))
+		} else {
+			res = fmt.Sprint(walkLeft(arr, yIndex, xIndex-1) + val + walkRight(arr, yIndex, xIndex+1))
+		}
+		num, err := strconv.Atoi(res)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if one == 0 {
+			one = num
+		} else {
+			two = num
+		}
+		partsCount++
 	}
-	if adjacentCounter != 2 || partOne == 0 || partTwo == 0 {
+	if partsCount != 2 {
 		return 0
 	}
-	return partOne * partTwo
+	return one * two
 }
 
-
-func walkRight(arr [][]string, p Point, y int, x int) string {
-	str := ""
-	for k := x + 1; k < len(arr[y]); k++ {
-		val := arr[y][k]
-		if !isNumber(val) {
+func walkLeft(arr [][]string, i int, j int) string {
+	var sb strings.Builder
+	for k := j; k >= 0; k-- {
+		if !isNumber(arr[i][k]) {
 			break
 		}
-		str = fmt.Sprint(str + val)
+		sb.WriteString(arr[i][k])
 	}
-	return str
+	return reverse(sb.String())
+}
+func walkRight(arr [][]string, i int, j int) string {
+	var sb strings.Builder
+	for k := j; k < len(arr[i]); k++ {
+		if !isNumber(arr[i][k]) {
+			break
+		}
+		sb.WriteString(arr[i][k])
+	}
+	return sb.String()
 }
 
-func walkLeft(arr [][]string, p Point, y int, x int) string {
-	str := ""
-	for k := x - 1; k >= 0; k-- {
-		val := arr[y][k]
-		if !isNumber(val) {
-			break
-		}
-		str = fmt.Sprint(val + str)
+func instancesAreOverlapping(arr [][]string, p Point, x int, y int) bool {
+	if p.X == -1 && p.Y == -1 && isNumber(arr[y][x+1]) {
+		return true
 	}
-	return str
+	if p.X == 1 && p.Y == -1 && isNumber(arr[y][x-1]) {
+		return true
+	}
+	if p.X == -1 && p.Y == 1 && isNumber(arr[y][x+1]) {
+		return true
+	}
+	if p.X == 1 && p.Y == 1 && isNumber(arr[y][x-1]) {
+		return true
+	}
+	return false
 }
 
 func reverse(s string) string {
