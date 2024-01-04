@@ -9,7 +9,41 @@ import (
 )
 
 type Seed struct {
-	number int
+	Number   int
+	Location int
+}
+
+func (s Seed) getLocation(
+	seedToSoil map[int]int,
+	soilToFertilizer map[int]int,
+	fertilizerToWater map[int]int, waterToLight map[int]int,
+	lightToTemperature map[int]int, temperatureToHumidity map[int]int, humidityToLocation map[int]int) int {
+	soil := getFromSource(s.Number, seedToSoil)
+	fertilizer := getFromSource(soil, soilToFertilizer)
+	water := getFromSource(fertilizer, fertilizerToWater)
+	light := getFromSource(water, waterToLight)
+	temperature := getFromSource(light, lightToTemperature)
+	humidity := getFromSource(temperature, temperatureToHumidity)
+	location := getFromSource(humidity, humidityToLocation)
+	return location
+}
+
+func getFromSource(n int, m map[int]int) int {
+	val, ok := m[n]
+	if ok {
+		return val
+	}
+	return n
+}
+
+func getRanges(maps []Map) map[int]int {
+    desinationSource := make(map[int]int)
+	for _, m := range maps {
+		for i := 0; i <= m.Range; i++ {
+			desinationSource[m.DestinationStart+i] = m.SourceStart + i
+		}
+	}
+	return desinationSource
 }
 
 type Map struct {
@@ -25,22 +59,24 @@ func main() {
 	}
 	lines := strings.Split(string(contents), "\n")
 	seeds := getSeeds(lines)
-	seedToSoil := getMap(lines, "seed-to-soil")
-	soilToFertilizer := getMap(lines, "soil-to-fertilizer")
-	fertilizerToWater := getMap(lines, "fertilizer-to-water")
-	waterToLight := getMap(lines, "water-to-light")
-	lightToTemperature := getMap(lines, "light-to-temperature")
-	temperatureToHumidity := getMap(lines, "temperature-to-humidity")
-	humidityToLocation := getMap(lines, "humidity-to-location")
-
-	fmt.Println(seeds)
-	fmt.Println(seedToSoil)
-	fmt.Println(soilToFertilizer)
-	fmt.Println(fertilizerToWater)
-	fmt.Println(waterToLight)
-	fmt.Println(lightToTemperature)
-	fmt.Println(temperatureToHumidity)
-	fmt.Println(humidityToLocation)
+	seedToSoil := getRanges(getMap(lines, "seed-to-soil"))
+	soilToFertilizer := getRanges(getMap(lines, "soil-to-fertilizer"))
+	fertilizerToWater := getRanges(getMap(lines, "fertilizer-to-water"))
+	waterToLight := getRanges(getMap(lines, "water-to-light"))
+	lightToTemperature := getRanges(getMap(lines, "light-to-temperature"))
+	temperatureToHumidity := getRanges(getMap(lines, "temperature-to-humidity"))
+	humidityToLocation := getRanges(getMap(lines, "humidity-to-location"))
+	for _, seed := range seeds {
+		seed.Location = seed.getLocation(
+            seedToSoil,
+            soilToFertilizer,
+			fertilizerToWater,
+            waterToLight,
+            lightToTemperature,
+            temperatureToHumidity,
+			humidityToLocation)
+	}
+    fmt.Println(seeds)
 }
 
 func getMap(lines []string, search string) []Map {
@@ -87,7 +123,7 @@ func getSeeds(lines []string) []Seed {
 		if err != nil {
 			log.Fatal(err)
 		}
-		res = append(res, Seed{number: val})
+		res = append(res, Seed{Number: val})
 	}
 	return res
 }
