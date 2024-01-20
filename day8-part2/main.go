@@ -12,69 +12,75 @@ type Location struct {
 	Right string
 }
 
-func main() {
-	contents, _ := os.ReadFile("input.txt")
-	lines := strings.Split(string(contents), "\n")
-	directions := strings.Split(lines[0], "")
-	locationList := lines[2 : len(lines)-1]
-	locationsMap := get(locationList, directions)
-	locationsStart := filterLocations(locationsMap, "A")
-    fmt.Println(walk(locationsMap, locationsStart, directions))
-}
-
-func walk(locMap map[string]Location, nodes []Location, directions []string) int {
-    step := 0
-    idx := 0
-    maxIdx := len(directions)
-    for !allNodesEndWith(nodes, "Z") {
-        direction := directions[idx]
-        idx++
-        step++
-        for i, loc := range nodes {
-            if direction == "L" {
-                nodes[i] = locMap[loc.Left]
-            } else {
-                nodes[i] = locMap[loc.Right]
-            }
-        }
-        if idx == maxIdx {
-            idx = 0
-        }
-    }
-    return step
-}
-
-func allNodesEndWith(nodes []Location, needle string) bool {
-	var result []Location
-	for _, node := range nodes {
-		if strings.HasSuffix(node.Key, needle) {
-			result = append(result, node)
-		}
+func getNodes(lines []string) map[string]Location {
+	locationList := make(map[string]Location)
+	for _, line := range lines {
+		line = strings.ReplaceAll(line, " ", "")
+		firstSplit := strings.Split(line, "=")
+		key := firstSplit[0]
+		leftRight := strings.Split(firstSplit[1], ",")
+		left := strings.Replace(leftRight[0], "(", "", 1)
+		right := strings.Replace(leftRight[1], ")", "", 1)
+		locationList[key] = Location{Key: key, Left: left, Right: right}
 	}
-	return len(nodes) == len(result)
+	return locationList
 }
 
-func filterLocations(locations map[string]Location, needle string) []Location {
+func filterNodesThatEndsWith(nodes map[string]Location, needle string) []Location {
 	var result []Location
-	for key, loc := range locations {
-		if strings.HasSuffix(key, needle) {
-			result = append(result, loc)
+	for key, node := range nodes {
+		if !strings.HasSuffix(key, needle) {
+			continue
 		}
+		result = append(result, node)
 	}
 	return result
 }
 
-func get(locationList []string, directions []string) map[string]Location {
-	locationMap := make(map[string]Location)
-	for i := range locationList {
-		split := strings.Split(locationList[i], " = ")
-		key := split[0]
-		valuesStr := split[1]
-		values := strings.Split(valuesStr, ", ")
-		left := strings.ReplaceAll(values[0], "(", "")
-		right := strings.ReplaceAll(values[1], ")", "")
-		location := Location{Key: key, Left: left, Right: right}
-		locationMap[key] = location
+func checkValues(values []bool) bool {
+	for _, value := range values {
+		if !value {
+			return false
+		}
 	}
-	return locationMap
+	return true
+}
+
+func main() {
+	contents, _ := os.ReadFile("input.txt")
+	lines := strings.Split(string(contents), "\n")
+	directionsString := lines[0]
+	directions := strings.Split(directionsString, "")
+	lines = lines[2 : len(lines)-1]
+	nodes := getNodes(lines)
+	currentNodes := filterNodesThatEndsWith(nodes, "A")
+	steps := 0
+	index := 0
+	for {
+        if index == len(directions) {
+            index = 0
+        }
+		direction := directions[index]
+		nextNodes := make([]Location, 0)
+		checkValuesSlice := make([]bool, 0)
+		for _, node := range currentNodes {
+			if direction == "L" {
+				nextNode := nodes[node.Left]
+				checkValuesSlice = append(checkValuesSlice, strings.HasSuffix(nextNode.Key, "Z"))
+				nextNodes = append(nextNodes, nextNode)
+			} else {
+				nextNode := nodes[node.Right]
+				checkValuesSlice = append(checkValuesSlice, strings.HasSuffix(nextNode.Key, "Z"))
+				nextNodes = append(nextNodes, nextNode)
+			}
+		}
+		currentNodes = nextNodes
+		steps++
+        index++
+		if checkValues(checkValuesSlice) {
+			break
+		}
+	}
+
+	fmt.Println(steps)
 }
